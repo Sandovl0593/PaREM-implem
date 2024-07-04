@@ -5,7 +5,7 @@
 #include <omp.h>
 #include "Transition.hh"
 #include "State.hh"
-#include "AFN.hh"
+#include "AFD.hh"
 
 
 // PAREM algorithm implementation

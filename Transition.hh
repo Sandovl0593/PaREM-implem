@@ -4,20 +4,18 @@
 #include <iostream>
 #include <vector>
 #include "State.hh"
-#include "AFN.hh"
 using namespace std;
 
 class Transition {
-private:
+public:
     State* initialState;
     State* finalState;
     string transitionSymbol;
 
-public:
-    Transition(string transitionSymbol) {
+    Transition(string transitionSymbol, int& currentState) {
         this->transitionSymbol = transitionSymbol;
-        this->initialState = new State(stateCount);
-        this->finalState = new State(stateCount);
+        this->initialState = new State(currentState++);
+        this->finalState = new State(currentState++);
     }
 
     Transition(string transitionSymbol, State* initialState, State* finalState) {
@@ -43,10 +41,12 @@ public:
     ~Transition() {
         if (initialState != nullptr) {
           delete initialState;
+          cout << "Deleted initialState from Transition" << endl;
           initialState = nullptr;
         } 
         if (finalState != nullptr) {
           delete finalState;
+          cout << "Deleted finalState from Transition" << endl;
           finalState = nullptr;
         }
     }

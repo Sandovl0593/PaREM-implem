@@ -13,18 +13,18 @@
 #include "State.hh"
 using namespace std;
 
-int stateCount = 0; // id for States
-
 class AFN {
-private:
   PostFix* postFix; // to handle infix to postfix
   string regExp; // the regExp in infix
   string postFixRegExp; // the regExp in postfix
+
   vector<char> symbolList; // AFN's symbol list
   vector<Transition*> transitionsList; // AFN's transitions list
   vector<State*> finalStates; // AFN's acceptation states list
-  vector<string> initialState; // AFN's initial state
-  vector<string> states; // AFN's states
+  int initialState; // AFN's initial state
+  vector<int> states; // AFN's states
+
+  int stateCount = 0; // id for States
 
   /* To save state reference */
   State* saveFinal;
@@ -49,18 +49,18 @@ private:
   // Adds AFN's states to stateList
   void computeStateList() {
     for (auto transition : transitionsList) {
-      if (find(states.begin(), states.end(), transition->getInitialState()->toString()) == states.end()) {
-        states.push_back(transition->getInitialState()->toString());
+      if (find(states.begin(), states.end(), transition->getInitialState()->getStateId()) == states.end()) {
+        states.push_back(transition->getInitialState()->getStateId());
       }
-      if (find(states.begin(), states.end(), transition->getFinalState()->toString()) == states.end()) {
-        states.push_back(transition->getFinalState()->toString());
+      if (find(states.begin(), states.end(), transition->getFinalState()->getStateId()) == states.end()) {
+        states.push_back(transition->getFinalState()->getStateId());
       }
     }
   }
 
   // Adds AFN's initial state to list
   void computeInitialState() {
-    initialState.push_back(stackInitial.top()->toString());
+    this->initialState = stackInitial.top()->getStateId();
     stackInitial.pop();
   }
 
@@ -69,7 +69,7 @@ private:
     for (size_t i = 0; i < postFixRegExp.length(); ++i) {
       char ch = postFixRegExp[i];
       if (find(symbolList.begin(), symbolList.end(), ch) != symbolList.end()) {
-        Transition* tr1 = new Transition(string(1, ch));
+        Transition* tr1 = new Transition(string(1, ch), stateCount);
         transitionsList.push_back(tr1);
 
         State* initialState = tr1->getInitialState();
@@ -164,9 +164,12 @@ private:
   }
 
 public:
+
+  // static int stateCount; // id for States
+
   AFN(const string& regExp) : regExp(regExp) {
     expressionSimplifier = new ExpressionSimplifier(regExp);
-    stateCount = 0;
+    // stateCount = 0;
     postFixRegExp = PostFix::infixToPostfix(expressionSimplifier->getRegExp());
     computeSymbolList();
     regExpToAFN();
@@ -186,11 +189,11 @@ public:
     return finalStates;
   }
 
-  vector<string> getStates() const {
+  vector<int> getStates() const {
     return states;
   }
 
-  vector<string> getInitialState() const {
+  int getInitialState() const {
     return initialState;
   }
 
@@ -199,30 +202,10 @@ public:
   }
 
   ~AFN() {
-    if (postFix != nullptr) {
-      delete postFix;
-      postFix = nullptr;
-    }
-    for (auto transition : transitionsList) {
-      if (transition != nullptr) {
-        delete transition;
-        transition = nullptr;
-      } 
-    }
-    for (auto state : finalStates) {
-      if (state != nullptr) {
-        delete state;
-        state = nullptr;
-      } 
-    }
-    while (!stackInitial.empty()) {
-      stackInitial.pop();
-    }
-    if (expressionSimplifier != nullptr) {
-      delete expressionSimplifier;
-      expressionSimplifier = nullptr;
-    }
+    
   }
 };
+
+// int stateCount = 0; // id for States
 
 #endif

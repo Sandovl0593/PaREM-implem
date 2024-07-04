@@ -1,26 +1,22 @@
 #ifndef STATE_HH
 #define STATE_HH
-#include "AFN.hh"
+#include <iostream>
 using namespace std;
 
 class State {
+public:
   vector<State*> previousStates;
   vector<State*> nextStates;
   int stateId;
-  bool isInitial;
-  bool isFinal;
 
-public:
-  State(int stateId) : stateId(stateId), isInitial(false), isFinal(false) {
-    // AFN::stateCount++; // sets a unique ID which comes from AFN's total stateCount
+  State(int stateId) : stateId(stateId) {
   }
 
   State(int stateId, vector<State*> previousState, vector<State*> nextState)
-    : stateId(stateId), previousStates(previousState), nextStates(nextState), isInitial(false), isFinal(false) {
-    // AFN::stateCount++;
+    : stateId(stateId), previousStates(previousState), nextStates(nextState) {
   }
 
-  State(int stateId, bool dfa) : stateId(stateId), isInitial(false), isFinal(false) {}
+  State(int stateId, bool dfa) : stateId(stateId) {}
 
   void addPreviousState(State* previousState) {
     this->previousStates.push_back(previousState);
@@ -46,26 +42,11 @@ public:
     return this->stateId;
   }
 
-  void setInitial(bool isInitial) {
-    this->isInitial = isInitial;
-  }
-
-  bool getInitial() {
-    return this->isInitial;
-  }
-
-  void setFinal(bool isFinal) {
-    this->isFinal = isFinal;
-  }
-
-  bool getFinal() {
-    return this->isFinal;
-  }
-
   ~State() {
     for (auto state : previousStates) {
       if (state != nullptr) {
         delete state;
+        cout << "delete prev state from State" << endl;
         state = nullptr;
       } 
     }
@@ -73,6 +54,7 @@ public:
     for (auto state : nextStates) {
       if (state != nullptr) {
         delete state;
+        cout << "delete next state from State" << endl;
         state = nullptr;
       } 
     }
