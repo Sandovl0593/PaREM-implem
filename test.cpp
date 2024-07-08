@@ -3,37 +3,66 @@
 #include <string>
 #include <vector>
 #include "AFN.hh"
+#include "AFD.hh"
 
 using namespace std;
 
 void writeFile(string regexp) {
     AFN* afn = new AFN(regexp);
-    ofstream writer("AFNresult.txt");
-    writer << "REGULAR EXPRESSION: " << regexp << endl;
-    writer << "REGULAR EXPRESSION IN POSTFIX: " << afn->getPostFixRegExp() << endl;
-    writer << "SYMBOL LIST: ";
+    ofstream writeAFN("AFNresult.txt");
+    writeAFN << "REGULAR EXPRESSION: " << regexp << endl;
+    writeAFN << "REGULAR EXPRESSION IN POSTFIX: " << afn->getPostFixRegExp() << endl;
+    writeAFN << "SYMBOL LIST: ";
     for (char ch : afn->getSymbolList()) {
-        writer << ch << ", ";
-    } writer << endl;
+        writeAFN << ch << ", ";
+    } writeAFN << endl;
 
-    writer << "TRANSITIONS LIST: ";
+    writeAFN << "TRANSITIONS LIST: ";
     for (Transition* transition : afn->getTransitionsList()) {
-        writer << transition->toString() << ", ";
-    } writer << endl;
+        writeAFN << transition->toString() << ", ";
+    } writeAFN << endl;
 
-    writer << "FINAL STATE: ";
+    writeAFN << "FINAL STATE: ";
     for (State* state : afn->getFinalStates()) {
-        writer << state->toString() << ", ";
-    } writer << endl;
+        writeAFN << state->toString() << ", ";
+    } writeAFN << endl;
 
-    writer << "STATES: ";
+    writeAFN << "STATES: ";
     for (int state : afn->getStates()) {
-        writer << state << ", ";
-    } writer << endl;
+        writeAFN << state << ", ";
+    } writeAFN << endl;
 
-    writer << "INITIAL STATE: " << afn->getInitialState() << endl;
+    writeAFN << "INITIAL STATE: " << afn->getInitialState() << endl;
 
-    writer.close();
+    writeAFN.close();
+
+
+    AFD* afd = new AFD(afn);
+    ofstream writeAFD("AFDresult.txt");
+    writeAFD << "REGULAR EXPRESSION: " << regexp << endl;
+    writeAFD << "SYMBOL LIST: ";
+    for (char ch : afd->getSymbolList()) {
+        writeAFD << ch << ", ";
+    } writeAFD << endl;
+
+    writeAFD << "TRANSITIONS LIST: ";
+    for (Transition* transition : afd->getTransitionsList()) {
+        writeAFD << transition->toString() << ", ";
+    } writeAFD << endl;
+
+    writeAFD << "FINAL STATE: ";
+    for (State* state : afd->getFinalStates()) {
+        writeAFD << state->toString() << ", ";
+    } writeAFD << endl;
+
+    writeAFD << "STATES: ";
+    for (int state : afd->getStates()) {
+        writeAFD << state << ", ";
+    } writeAFD << endl;
+
+    writeAFD << "INITIAL STATE: " << afd->getInitialState() << endl;
+
+    delete afd;
     delete afn;
 }
 
@@ -43,7 +72,7 @@ int main() {
     cout << "Enter a regular expression: ";
     getline(cin, regexp);
     writeFile(regexp);
-    cout << "AFNresult.txt created!" << endl;
+    cout << "Done!" << endl;
 
     return 0;
 }

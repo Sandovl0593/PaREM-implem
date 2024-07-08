@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 #include <map>
-#include <queue>
+#include <list>
 #include "AFN.hh"
 using namespace std;
 
@@ -16,26 +16,26 @@ public:
   int initialState;
   vector<int> states;
 
-  AFD(AFN& afn) {
+  AFD(AFN* afn) {
     // Init AFD
-    symbolList = afn.getSymbolList();
+    symbolList = afn->getSymbolList();
     initialState = 0;
 
     // Table of states and mapping of subsets of states of the AFN to states of the AFD
     map<vector<int>, State*> subsetToState;
-    queue<vector<int>> pendingSubsets;
+    list<vector<int>> pendingSubsets;
 
     // Initial state of the AFD is the ε-closure of the initial state of the AFN
-    vector<int> initialSubset = epsilonClosure({afn.getInitialState()}, afn);
+    vector<int> initialSubset = epsilonClosure({afn->getInitialState()}, afn);
     State* initialDFAState = new State(initialState);
     subsetToState[initialSubset] = initialDFAState;
     states.push_back(initialState);
-    pendingSubsets.push(initialSubset);
+    pendingSubsets.push_back(initialSubset);
 
     // Process all subsets of states of the AFN
     while (!pendingSubsets.empty()) {
       vector<int> currentSubset = pendingSubsets.front();
-      pendingSubsets.pop();
+      pendingSubsets.pop_front();
       State* currentDFAState = subsetToState[currentSubset];
 
       for (char symbol : symbolList) {
@@ -50,14 +50,14 @@ public:
           State* newState = new State(newStateId);
           subsetToState[newSubset] = newState;
           states.push_back(newStateId);
-          pendingSubsets.push(newSubset);
+          pendingSubsets.push_back(newSubset);
         }
 
         State* nextDFAState = subsetToState[newSubset];
         Transition* newTransition = new Transition(string(1, symbol), currentDFAState, nextDFAState);
         transitionsList.push_back(newTransition);
-        currentDFAState->nextStates.push_back(nextDFAState);
-        nextDFAState->previousStates.push_back(currentDFAState);
+        // currentDFAState->nextStates.push_back(nextDFAState);
+        // nextDFAState->previousStates.push_back(currentDFAState);
       }
     }
 
@@ -65,7 +65,7 @@ public:
     for (const auto& subsetStatePair : subsetToState) {
       const vector<int>& subset = subsetStatePair.first;
       State* dfaState = subsetStatePair.second;
-      for (State* afnFinalState : afn.getFinalStates()) {
+      for (State* afnFinalState : afn->getFinalStates()) {
         if (find(subset.begin(), subset.end(), afnFinalState->stateId) != subset.end()) {
           finalStates.push_back(dfaState);
           break;
@@ -74,20 +74,40 @@ public:
     }
   }
 
+  vector<char> getSymbolList() const {
+    return symbolList;
+  }
+
+  vector<Transition*> getTransitionsList() const {
+    return transitionsList;
+  }
+
+  vector<State*> getFinalStates() const {
+    return finalStates;
+  }
+
+  vector<int> getStates() const {
+    return states;
+  }
+
+  int getInitialState() const {
+    return initialState;
+  }
+
 private:
-  vector<int> epsilonClosure(const vector<int>& states, AFN& afn) {
+  vector<int> epsilonClosure(const vector<int>& states, AFN* afn) {
     vector<int> closure = states;
-    queue<int> toProcess(states.begin(), states.end());
+    list<int> toProcess(states.begin(), states.end());
 
     while (!toProcess.empty()) {
       int state = toProcess.front();
-      toProcess.pop();
-      for (Transition* transition : afn.getTransitionsList()) {
+      toProcess.pop_front();
+      for (Transition* transition : afn->getTransitionsList()) {
         if (transition->initialState->stateId == state && transition->transitionSymbol == "ε") {
           int nextStateId = transition->finalState->stateId;
           if (find(closure.begin(), closure.end(), nextStateId) == closure.end()) {
             closure.push_back(nextStateId);
-            toProcess.push(nextStateId);
+            toProcess.push_back(nextStateId);
           }
         }
       }
@@ -96,10 +116,10 @@ private:
     return closure;
   }
 
-  vector<int> move(const vector<int>& states, char symbol, AFN& afn) {
+  vector<int> move(const vector<int>& states, char symbol, AFN* afn) {
     vector<int> result;
     for (int state : states) {
-      for (Transition* transition : afn.getTransitionsList()) {
+      for (Transition* transition : afn->getTransitionsList()) {
         if (transition->initialState->stateId == state && transition->transitionSymbol == string(1, symbol)) {
           if (find(result.begin(), result.end(), transition->finalState->stateId) == result.end()) {
             result.push_back(transition->finalState->stateId);

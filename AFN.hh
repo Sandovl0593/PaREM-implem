@@ -10,7 +10,6 @@
 #include "PostFix.hh"
 #include "Simplifier.hh"
 #include "Transition.hh"
-#include "State.hh"
 using namespace std;
 
 class AFN {

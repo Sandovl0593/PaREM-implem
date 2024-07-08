@@ -3,8 +3,26 @@
 
 #include <iostream>
 #include <vector>
-#include "State.hh"
 using namespace std;
+
+class State {
+public:
+  int stateId;
+
+  State(int stateId) : stateId(stateId) {
+  }
+
+  string toString() {
+    return to_string(this->stateId);
+  }
+
+  int getStateId() {
+    return this->stateId;
+  }
+
+  ~State() {
+  }
+};
 
 class Transition {
 public:
@@ -39,16 +57,6 @@ public:
     string getTransitionSymbol() { return this->transitionSymbol; }
 
     ~Transition() {
-        if (initialState != nullptr) {
-          delete initialState;
-          cout << "Deleted initialState from Transition" << endl;
-          initialState = nullptr;
-        } 
-        if (finalState != nullptr) {
-          delete finalState;
-          cout << "Deleted finalState from Transition" << endl;
-          finalState = nullptr;
-        }
     }
 };
 
