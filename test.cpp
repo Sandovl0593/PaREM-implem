@@ -7,8 +7,6 @@
 #include "AFN.hh"
 #include "AFD.hh"
 
-#include "state.hh"
-
 using namespace std;
 
 void writeFile(string regexp) {
