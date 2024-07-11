@@ -8,20 +8,10 @@ using namespace std;
 class State {
 public:
   int stateId;
-
-  State(int stateId) : stateId(stateId) {
-  }
-
-  string toString() {
-    return to_string(this->stateId);
-  }
-
-  int getStateId() {
-    return this->stateId;
-  }
-
-  ~State() {
-  }
+  State(int stateId) : stateId(stateId) {}
+  string toString() { return to_string(this->stateId); }
+  int getStateId() { return this->stateId; }
+  ~State() {}
 };
 
 class Transition {
@@ -42,22 +32,11 @@ public:
         this->finalState = finalState;
     }
 
-    State* getInitialState() {
-        return this->initialState;
-    }
-
-    State* getFinalState() {
-        return this->finalState;
-    }
-
-    string toString() {
-        return initialState->toString() + " - " + transitionSymbol + " - " + finalState->toString();
-    }
-
+    State* getInitialState() { return this->initialState; }
+    State* getFinalState() { return this->finalState; }
     string getTransitionSymbol() { return this->transitionSymbol; }
-
-    ~Transition() {
-    }
+    string toString() { return initialState->toString() + " - " + transitionSymbol + " - " + finalState->toString(); }
+    ~Transition() {}
 };
 
 #endif

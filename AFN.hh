@@ -12,6 +12,8 @@
 #include "Transition.hh"
 using namespace std;
 
+const char EPSILON = '\x040';
+
 class AFN {
   PostFix* postFix; // to handle infix to postfix
   string regExp; // the regExp in infix
@@ -108,7 +110,7 @@ class AFN {
       if (i == postFixRegExp.length() - 1) {
         finalStates.push_back(stackFinal.top());
         stackFinal.pop();
-        auto it = find(symbolList.begin(), symbolList.end(), 'ε');
+        auto it = find(symbolList.begin(), symbolList.end(), EPSILON);
         if (it != symbolList.end()) {
           symbolList.erase(it);
         }

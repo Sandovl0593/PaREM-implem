@@ -112,21 +112,16 @@ private:
         }
       }
     }
-
     return closure;
   }
 
   vector<int> move(const vector<int>& states, char symbol, AFN* afn) {
     vector<int> result;
-    for (int state : states) {
-      for (Transition* transition : afn->getTransitionsList()) {
-        if (transition->initialState->stateId == state && transition->transitionSymbol == string(1, symbol)) {
-          if (find(result.begin(), result.end(), transition->finalState->stateId) == result.end()) {
+    for (int state : states)
+      for (Transition* transition : afn->getTransitionsList())
+        if (transition->initialState->stateId == state && transition->transitionSymbol == string(1, symbol))
+          if (find(result.begin(), result.end(), transition->finalState->stateId) == result.end()) 
             result.push_back(transition->finalState->stateId);
-          }
-        }
-      }
-    }
     return result;
   }
 };

@@ -2,8 +2,12 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <cstdlib>
+#include <ctime>
 #include "AFN.hh"
 #include "AFD.hh"
+
+#include "state.hh"
 
 using namespace std;
 
@@ -61,18 +65,17 @@ void writeFile(string regexp) {
     } writeAFD << endl;
 
     writeAFD << "INITIAL STATE: " << afd->getInitialState() << endl;
-
-    delete afd;
     delete afn;
+    delete afd;
 }
 
 
 int main() {
+    // Fase 1: Generación del automata determinista
     string regexp;
     cout << "Enter a regular expression: ";
     getline(cin, regexp);
     writeFile(regexp);
     cout << "Done!" << endl;
-
     return 0;
 }
