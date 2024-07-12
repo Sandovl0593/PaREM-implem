@@ -17,6 +17,8 @@
 #include <cstdlib>
 #include <ctime>
 
+#include <omp.h>
+
 int main() {
     // Fase 1: Generación del automata determinista
     // Se necesita modificar la clase AFD que utilize la lista de variables
@@ -42,31 +44,65 @@ int main() {
         char bit = (rand() % 2) ? '1' : '0';
         binaryString += bit;
     }
-    // binaryString = "010101010101010101010101010101";
+    // binaryString = "101010101011110000001111111111111000000";
+    // binaryString = "10111010010111000011001000110111000101110100100101001100011010010000011001011101001001001100101111110110000010111111011101110001100111011010010101001101111101011010110111110110111011100010010111000011";
     std::cout << "Entrada a evaluar: " << binaryString << std::endl;
 
     // Fase 3: Recorrido del input dentro del automata
     // Aquí se debe paralelizar el proceso con OMP
-    int found = 0;
-    int currentState = initialState;
-    std::string way = std::to_string(currentState);
-    if(finalState.find(currentState) != finalState.end())
-        found++;
-    for (int i = 0; i < binaryString.size(); ++i) {
-        char bit = binaryString[i];
-        if(transitionList[currentState].find(bit) != transitionList[currentState].end()) {
-            currentState = transitionList[currentState][bit];
-            way = way + " - " + std::to_string(currentState);
-            if(finalState.find(currentState) != finalState.end())
-                found++;
-        } else {
-            way = way + " - X";
-            break;
-        }
+    int total_found = 0;
+    const int num_threads = 4;
+    int chunk_size = binaryString.size() / num_threads;
+
+    std::vector<std::string> ways(num_threads);
+
+    #pragma omp parallel num_threads(num_threads) reduction(+:total_found)
+    {
+        int thread_id = omp_get_thread_num();
+        int start = thread_id * chunk_size;
+        int end = (thread_id == num_threads - 1) ? binaryString.size() : start + chunk_size;
+
+        int currentState = initialState;
+        int found = 0;
+        std::string way;
+    
+        for (int i = start; i < end; ++i) {
+            int currentState = initialState;
+            way = std::to_string(currentState);
+
+            for (int j = i; j < binaryString.size(); ++j) {
+                char bit = binaryString[j];
+                if (transitionList[currentState].find(bit) != transitionList[currentState].end()) {
+                    currentState = transitionList[currentState][bit];
+                    way += " - " + std::to_string(currentState);
+                    if (finalState.find(currentState) != finalState.end()) {
+                        found++;
+                    }
+                } else {
+                    way += " - X";
+                    break;
+                }
+            }
+    }   
+
+        total_found += found;
+        ways[thread_id] = way;
+
     }
-    std::cout << "Número de matches: " << found << std::endl;
-    std::cout << "Recorrido en el automata:\n" << way << std::endl; 
+
+    std::cout << "Número total de matches: " << total_found << std::endl;
+
+    for (int i = 0; i < num_threads; ++i)
+    {
+        std::cout << "Hilo " << i << " recorrido en el automata:\n"
+                  << ways[i] << std::endl;
+    }
+
     return 0;
+
+    // std::cout << "Número de matches: " << found << std::endl;
+    // std::cout << "Recorrido en el automata:\n" << way << std::endl; 
+    // return 0;
 };
 
 // - Output: Set of reachable states
