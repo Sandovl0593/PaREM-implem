@@ -17,17 +17,21 @@ int main() {
     std::set<int> F;
     std::vector<std::map<char,int>> Tt;
     // Método de inserción de estados y transicciones
-    Tt.resize(3);
-    F.insert(2);
+    Tt.resize(5);
+    F.insert(3);
     Tt[0]['0'] = 1;
-    Tt[0]['1'] = 0;
+    Tt[0]['1'] = 2;
     Tt[1]['0'] = 1;
     Tt[1]['1'] = 2;
-    Tt[2]['0'] = 1;
-    Tt[2]['1'] = 0;
+    Tt[2]['0'] = 3;
+    Tt[2]['1'] = 2;
+    Tt[3]['0'] = 4;
+    Tt[3]['1'] = 4;
+    Tt[4]['0'] = 1;
+    Tt[4]['1'] = 2;
 
     // Fase 2: Generación del input
-    const int length = 40;
+    const int length = 500;
     std::string binaryString;
     binaryString.reserve(length);
     std::srand(std::time(0));
@@ -43,12 +47,10 @@ int main() {
     // Fase 3: Recorrido del input dentro del automata
     // Aquí se debe paralelizar el proceso con OMP
     int total_found = 0;
-    const int num_threads = 4;
+    const int num_threads = 8;
     std::set<int> S[num_threads], L[num_threads];
     S[0].insert(initialState);
     L[num_threads-1].insert(F.begin(), F.end());
-    std::vector<std::string> ways(num_threads);
-    
 
     int start, end, found, currentState;
     std::set<int> R;
@@ -59,26 +61,30 @@ int main() {
         int chunk_size = binaryString.size() / num_threads;
         start = chunk_size * id;
         end = chunk_size*(id+1)-1;
-        if(id == 3) 
+        if(id == num_threads-1) 
             end = binaryString.size()-1;
 
         if(id != 0) {
             for(int i=0; i < Tt.size(); i++)
                 if(Tt[i].find(binaryString[start]) != Tt[i].end())
                     S[id].insert(i);
-        }
+        } // O(s); s: Número de estados del automata
+
+
 
         if(id != num_threads-1) {
             for(int i=0; i < Tt.size(); i++)
                 if(Tt[i].find(binaryString[end]) != Tt[i].end())
                     L[id].insert(Tt[i][binaryString[end]]);
-        }
+        } // O(s); s: Número de estados del automata
 
         #pragma omp barrier
         if(id != 0)
             std::set_intersection(S[id].begin(), S[id].end(), L[id-1].begin(), L[id-1].end(), std::inserter(R, R.begin()));
         else
             R.insert(S[id].begin(),S[id].end());
+        // O(s)
+
 
         for(int init: R) {
             currentState = init;
@@ -97,16 +103,15 @@ int main() {
                     break;
                 }
             }
-        }
+        } // O(s*n*lg(s)/p)
 
         #pragma omp critical
         {
             std::cout << '\n' << "Proceso " << id << ":" << '\n';
             for (const auto& pair : route[id]) {
                 std::cout << "Clave: " << pair.first << " -> Valores: ";
-                for (int val : pair.second) {
+                for (int val : pair.second)
                     std::cout << val << " ";
-                }
                 std::cout << std::endl;
             }
         }
