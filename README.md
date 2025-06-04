@@ -1,20 +1,24 @@
-<a id="readme-top"></a>
-
 <h1 align="center">PaREM-implem</h1>
 
-#### Implementación del algoritmo de la propuesta _Parallel Regular Expression Matching_ de este $\;$ _[paper](https://arxiv.org/pdf/1412.1741.pdf)_ $\;$ utilizando OpenMP en C++.
+#### Implementación de _Parallel Regular Expression Matching_ con MPI y OpenMP en C++.
 
-## Informe
+Descripción de la implementación y comparación de mediciones con la complejidad teórica y experimental de la implementación bajo memoria distribuida y compartida.
 
-#### En el informe incluye la descripción de la implementación, análisis de tiempos y comparación de mediciones con la complejidad teórica de la implementación.
+Se toma en cuenta que no implementamos de Expresiones Regulares a AFD's según el paper por complejidad de código, sino directamente solo AFD como clase resultante a partir de una expresión regular y que se instancie directamente para test del proyecto.
 
 ## Compilación y Entorno
 
+- En secuencial
+
+```bash
+g++ seciencial.cpp -o secuencial
+```
+
+- Con MPI
+- Con OMP   
+
 ## Integrantes
 
-- A
-- Sandoval Huamaní, Adrian
-- S
-
-
-[Ir al inicio...](#readme-top)
+- Arleth Ivhy Lapa Carhuamaca
+- Adrian Sandoval Huamani
+- Salvador Eliot Hilares Barrios

@@ -3,17 +3,19 @@
 #include <array>
 #include <random>
 #include <ctime>
+#include <chrono>
+using namespace std;
 
 class AFD {
 private:
     int numStates;
     int initialState;
-    std::vector<bool> isFinal;                 // isFinal[s] == true si el estado s es final
-    std::vector<std::array<int,2>> trans;      // trans[s][0] = siguiente estado leyendo '0'
-                                               // trans[s][1] = siguiente estado leyendo '1'
+    vector<bool> isFinal;                 // isFinal[s] == true si el estado s es final
+    vector<array<int,2>> trans;          // trans[s][0] = siguiente estado leyendo '0'
+                                           // trans[s][1] = siguiente estado leyendo '1'
 public:
-    // Constructor: recibe número de estados, estado inicial y lista de estados finales
-    AFD(int n,int init, const std::vector<int> &finalStates)
+    // Constructor: recibe numero de estados, estado inicial y lista de estados finales
+    AFD(int n,int init, const vector<int> &finalStates)
         : numStates(n),
           initialState(init),
           isFinal(n, false),
@@ -52,11 +54,11 @@ public:
     }
 
     // Procesa la cadena 'input'; devuelve un par con:
-    //  - vector<int> ruta completa de estados (incluye estado inicial; en caso de fallo en transición, 
+    //  - vector<int> ruta completa de estados (incluye estado inicial; en caso de fallo en transicion, 
     //    añade -1 y corta)
-    //  - número de veces que se entró en un estado final (incluyendo el inicial si aplica)
-    std::pair<std::vector<int>, int> run(const std::string &input) const {
-        std::vector<int> route;
+    //  - numero de veces que se entro en un estado final (incluyendo el inicial si aplica)
+    pair<vector<int>, int> run(const string &input) const {
+        vector<int> route;
         route.reserve(input.size() + 1);
 
         int matches = 0;
@@ -84,45 +86,49 @@ public:
 
 
 int main() {
-    // Configuración del autómata determinista ---
+    // Configuracion del automata determinista ---
     const int numState = 3;
     const int initialState = 0;
     // Estado final = {2}
-    std::vector<int> finales = { 2 };
+    vector<int> finales = { 2 };
     AFD afd(numState, initialState, finales);
 
-    // Definimos transiciones (igual lógica que en el código original)
-    afd.addTransition(0, '0', 1);
-    afd.addTransition(0, '1', 0);
-    afd.addTransition(1, '0', 1);
-    afd.addTransition(1, '1', 2);
-    afd.addTransition(2, '0', 1);
-    afd.addTransition(2, '1', 0);
+    afd.addTransition(0, '0', 1); // \delta(0, '0') = 1
+    afd.addTransition(0, '1', 0); // \delta(0, '1') = 0
+    
+    afd.addTransition(1, '0', 1); // \delta(1, '0') = 1
+    afd.addTransition(1, '1', 2); // \delta(1, '1') = 2
 
-    // Generación de la cadena binaria aleatoria ---
+    afd.addTransition(2, '0', 1); // \delta(2, '0') = 1
+    afd.addTransition(2, '1', 0); // \delta(2, '1') = 0
+
+    // Generacion de la cadena binaria aleatoria ---
     const int length = 50;
-    std::string binaryString;
+    string binaryString;
     binaryString.reserve(length);
 
-    // Usamos <random> para mejor calidad de aleatoriedad
-    std::mt19937 rng(static_cast<unsigned int>(std::time(nullptr)));
-    std::uniform_int_distribution<int> dist(0, 1);
+    mt19937 rng(static_cast<unsigned int>(chrono::system_clock::now().time_since_epoch().count()));
+    uniform_int_distribution<int> dist(0, 1);
 
     for (int i = 0; i < length; ++i) {
         binaryString.push_back(dist(rng) == 1 ? '1' : '0');
     }
-
-    std::cout << "Entrada a evaluar: " << binaryString << std::endl;
-
-    // Recorrido de la cadena en el autómata ---
+    cout << "Entrada a evaluar: " << binaryString << endl;
+    
+    cout << "------------------------\n";
+    // Recorrido de la cadena en el automata ---
+    auto start = chrono::high_resolution_clock::now();
+    cout << "Procesando cadena en el automata..." << endl;
     auto [ruta, totMatches] = afd.run(binaryString);
-
-    std::cout << "Número de matches: " << totMatches << std::endl;
-    std::cout << "Recorrido en el automata:\n";
+    auto end = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+    cout << "Done! en tiempo: " << duration.count() << " microsegundos" << endl;
+    
+    cout << "-------------------------\n";
+    cout << "Numero de matches: " << totMatches << endl;
+    cout << "Recorrido en el automata:\n";
     for (int estado : ruta) {
-        std::cout << estado << " ";
+        cout << estado << " ";
     }
-    std::cout << std::endl;
-
-    return 0;
+    cout << endl;
 }
