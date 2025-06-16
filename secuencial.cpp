@@ -2,6 +2,7 @@
 #include <random>
 #include <omp.h>
 #include <string>
+#include <fstream>
 
 // Procesa la cadena 'T'; devuelve un par con:
 //  - vector<int> ruta completa de estados (incluye estado inicial; en caso de fallo en transicion,
@@ -47,10 +48,6 @@ int main() {
     //     alphabet.push_back(static_cast<char>('a' + i));
     // }
 
-    std::cout << "Símbolos: ";
-    for (char c : alphabet) std::cout << c << ' ';
-    std::cout << "\n\n";
-
     afd.addTransition(0, 'a', 1);  // \delta(0, 'a') = 1
     afd.addTransition(0, 'b', 0);  // \delta(0, 'b') = 0
     afd.addTransition(0, 'c', 2);  // \delta(0, 'c') = 2
@@ -61,15 +58,19 @@ int main() {
     afd.addTransition(2, 'b', 0);  // \delta(2, 'b') = 0
     afd.addTransition(2, 'c', 2);  // \delta(2, 'c') = 2 (transición a sí mismo)
 
-    const int length = 100;
+    const int length = 100000;
 
-    std::uniform_int_distribution<int> distChar(0, 25);
-    std::string T;
-    T.reserve(length);
-    for (int i = 0; i < length; ++i) {
-        T.push_back(alphabet[ distChar(rng) ]);
-    }
-    std::cout << "Entrada a evaluar: " << T << "\n\n";
+    // std::uniform_int_distribution<int> distChar(0, alphabet.size() - 1);
+    // std::string T;
+    // T.reserve(length);
+    // for (int i = 0; i < length; ++i) {
+    //     T.push_back(alphabet[ distChar(rng) ]);
+    // }
+
+    // example from "example.txt"
+    std::ifstream file("example.txt");
+    std::string T; std::getline(file, T);
+    file.close();
 
     // Medición con OpenMP (secuencial)
     double t0 = omp_get_wtime();
@@ -81,9 +82,9 @@ int main() {
               << " microsegundos\n\n";
 
     std::cout << "Número de matches: " << totMatches << "\n";
-    std::cout << "Recorrido en el autómata:\n";
-    for (int estado : ruta) {
-        std::cout << estado << ' ';
-    }
+    // std::cout << "Recorrido en el autómata:\n";
+    // for (int estado : ruta) {
+    //     std::cout << estado << ' ';
+    // }
     std::cout << "\n";
 }
