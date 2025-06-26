@@ -4,6 +4,8 @@
 #include <string>
 #include <fstream>
 
+// CONSIDERANDO EL PRECOMPUTO DEL AFD -> TIENE LA MISMA COMPLEJIDAD DEL ENFOQUE POR BRENT
+
 pair<vector<int>, int> run_parem(AFD afd, const string &T, int num_threads) {
     int N = T.size();
     int chunk = (N + num_threads - 1) / num_threads;
@@ -25,33 +27,32 @@ pair<vector<int>, int> run_parem(AFD afd, const string &T, int num_threads) {
     for (int t = 0; t < num_threads; t++) {
         int left = t * chunk;
         int right = min(N, left + chunk);
-        BlockResult &R = results[t];
-        R.matches = 0;
+        results[t].matches = 0;
 
         if (left >= N) {
-            R.startState = R.endState = -1;
+            results[t].startState = results[t].endState = -1;
             continue;
         }
 
         // Para el primer bloque, partimos del estado inicial; para el resto,
         // se rellenará tras la fase de reducción.
-        if (t == 0) R.startState = 0;
-        else        R.startState = -1;
+        if (t == 0) results[t].startState = 0;
+        else        results[t].startState = -1;
 
         // Procesar el bloque de entrada T[left:right]
         int curr = 0;
         vector<int> localRoute;
         localRoute.reserve(right - left + 1);
         localRoute.push_back(curr);
-        if (afd.accept(curr)) R.matches++;
+        if (afd.accept(curr)) results[t].matches++;
 
         for (int i = left; i < right; i++) {
             curr = afd.nextState(curr, T[i]);
             localRoute.push_back(curr);
-            if (afd.accept(curr)) R.matches++;
+            if (afd.accept(curr)) results[t].matches++;
         }
-        R.route     = std::move(localRoute);
-        R.endState  = curr;
+        results[t].route     = std::move(localRoute);
+        results[t].endState  = curr;
     }
 
     // Reducción secuencial de resultados
