@@ -1,0 +1,121 @@
+// Optimized Sequential DFA Implementation
+// Based on the paper's analysis of DFA execution and optimizations
+
+// Input: 
+// - DFA = (Q, Σ, δ, q0, F) where:
+//   Q: set of states
+//   Σ: input alphabet
+//   δ: transition function
+//   q0: initial state
+//   F: set of final states
+// - input_string: string to be processed
+
+class OptimizedDFA {
+private:
+    // Cache-friendly data structures
+    vector<int> transition_table;  // Flattened transition table for better cache locality
+    vector<bool> final_states;     // Bit vector for final states
+    int num_states;
+    int alphabet_size;
+    int initial_state;
+    
+    // Precompute transition table for better cache locality
+    void initialize_transition_table(const vector<vector<int>>& delta) {
+        transition_table.resize(num_states * alphabet_size);
+        for (int state = 0; state < num_states; state++) {
+            for (int symbol = 0; symbol < alphabet_size; symbol++) {
+                transition_table[state * alphabet_size + symbol] = delta[state][symbol];
+            }
+        }
+    }
+
+public:
+    OptimizedDFA(int states, int alphabet, int init_state, 
+                 const vector<vector<int>>& delta,
+                 const vector<int>& accepting_states) 
+        : num_states(states),
+          alphabet_size(alphabet),
+          initial_state(init_state),
+          final_states(states, false) {
+        
+        // Initialize transition table
+        initialize_transition_table(delta);
+        
+        // Mark final states
+        for (int state : accepting_states) {
+            if (state >= 0 && state < num_states) {
+                final_states[state] = true;
+            }
+        }
+    }
+
+    // Optimized run method with minimal branching and cache-friendly access
+    bool run(const string& input) {
+        int current_state = initial_state;
+        
+        // Process input string
+        for (char symbol : input) {
+            // Direct table lookup without branching
+            current_state = transition_table[current_state * alphabet_size + (symbol - 'a')];
+            
+            // Early exit if invalid state
+            if (current_state < 0) return false;
+        }
+        
+        return final_states[current_state];
+    }
+
+    // Method to track state sequence (useful for debugging/analysis)
+    pair<vector<int>, int> run_with_tracking(const string& input) {
+        vector<int> state_sequence;
+        state_sequence.reserve(input.length() + 1);
+        int matches = 0;
+        
+        int current_state = initial_state;
+        state_sequence.push_back(current_state);
+        if (final_states[current_state]) matches++;
+        
+        for (char symbol : input) {
+            current_state = transition_table[current_state * alphabet_size + (symbol - 'a')];
+            if (current_state < 0) {
+                state_sequence.push_back(-1);
+                break;
+            }
+            state_sequence.push_back(current_state);
+            if (final_states[current_state]) matches++;
+        }
+        
+        return {state_sequence, matches};
+    }
+};
+
+// Example usage:
+/*
+DFA = {
+    Q = {q0, q1, q2},
+    Σ = {'a', 'b'},
+    δ = {
+        (q0, 'a') -> q1,
+        (q0, 'b') -> q0,
+        (q1, 'a') -> q2,
+        (q1, 'b') -> q0,
+        (q2, 'a') -> q2,
+        (q2, 'b') -> q0
+    },
+    q0 = q0,
+    F = {q2}
+}
+
+// Create transition table
+vector<vector<int>> delta = {
+    {1, 0},  // q0 transitions
+    {2, 0},  // q1 transitions
+    {2, 0}   // q2 transitions
+};
+
+// Create DFA
+OptimizedDFA dfa(3, 2, 0, delta, {2});
+
+// Run DFA
+bool result = dfa.run("aab");
+*/ 
