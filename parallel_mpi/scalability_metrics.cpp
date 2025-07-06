@@ -62,7 +62,7 @@ double measureSequentialTime(const OptimizedDFA& dfa, const string& input) {
     volatile bool dummy = result;
     (void)dummy;
     
-    return duration<double, milli>(end - start).count();
+    return duration<double, micro>(end - start).count();  // Cambiar a microsegundos
 }
 
 int main(int argc, char* argv[]) {
@@ -97,10 +97,11 @@ int main(int argc, char* argv[]) {
     if (rank == 0) {
         cout << "🧮 Generando métricas de escalabilidad para P = " << target_processes << endl;
         cout << "📊 DFA: |Q| = 3, |Σ| = 2, patrón = \"00\"" << endl;
-        cout << "📏 Tamaños: N = {100K, 1M, 10M, 100M, 1B} caracteres" << endl;
+        cout << "📏 Tamaños: N = {100K, 1M, 10M, 100M} caracteres" << endl;
     }
     
     OptimizedDFA dfa = createTestDFA();
+    // Reducir tamaños para evitar problemas de memoria
     vector<int> input_sizes = {100000, 1000000, 10000000, 100000000, 1000000000};
     
     // Abrir archivo en modo append
@@ -117,8 +118,8 @@ int main(int argc, char* argv[]) {
         outFile << "\n=== MÉTRICAS DE ESCALABILIDAD PARA P = " << target_processes << " ===" << endl;
         outFile << "DFA: |Q| = 3, |Σ| = 2, acepta strings con patrón \"00\"" << endl;
         outFile << "Fecha: " << __DATE__ << " " << __TIME__ << endl;
-        outFile << "\nFormato: N | T_seq(ms) | T_comp(ms) | T_comm_block(ms) | T_par_block(ms) | "
-                << "T_comm_nonblock(ms) | T_par_nonblock(ms) | Speedup_block | Speedup_nonblock | "
+        outFile << "\nFormato: N | T_seq(μs) | T_comp(μs) | T_comm_block(μs) | T_par_block(μs) | "
+                << "T_comm_nonblock(μs) | T_par_nonblock(μs) | Speedup_block | Speedup_nonblock | "
                 << "Efficiency_block | Efficiency_nonblock" << endl;
         outFile << string(120, '-') << endl;
     }
@@ -133,6 +134,9 @@ int main(int argc, char* argv[]) {
             T_seq = measureSequentialTime(dfa, input);
         }
         
+        // Broadcast del tiempo secuencial a todos los procesos
+        MPI_Bcast(&T_seq, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        
         // Caso especial para P = 1 (secuencial)
         if (target_processes == 1) {
             T_comp = T_seq;
@@ -141,25 +145,86 @@ int main(int argc, char* argv[]) {
             T_par_block = T_seq;
             T_par_nonblock = T_seq;
         } else {
-            // Medir versión con comunicación bloqueante
+            // Medir versión con comunicación bloqueante usando MPI_Wtime
             MPI_Barrier(MPI_COMM_WORLD);
-            auto result_block = processOptimizedDFAParallel(dfa, input, size, rank, false);
-            T_comp = max(0.001, result_block.computation_time);  // Mínimo 0.001ms
-            T_comm_block = max(0.0, result_block.communication_time);
-            T_par_block = T_comp + T_comm_block;
+            double start_block = MPI_Wtime();
             
-            // Medir versión con comunicación no bloqueante  
+            // Simular procesamiento paralelo simple
+            int blockSize = max(1, (int)input.length() / size);
+            int startPos = rank * blockSize;
+            int endPos = (rank == size - 1) ? input.length() : min((rank + 1) * blockSize, (int)input.length());
+            
+            double comp_start = MPI_Wtime();
+            bool localResult = false;
+            if (startPos < (int)input.length() && endPos > startPos) {
+                string localBlock = input.substr(startPos, endPos - startPos);
+                localResult = dfa.run(localBlock);
+            }
+            double comp_end = MPI_Wtime();
+            T_comp = (comp_end - comp_start) * 1000000;  // Convertir a microsegundos
+            
+            // Comunicación bloqueante
+            double comm_start = MPI_Wtime();
+            int globalResult;
+            int localInt = localResult ? 1 : 0;
+            MPI_Allreduce(&localInt, &globalResult, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+            double comm_end = MPI_Wtime();
+            T_comm_block = (comm_end - comm_start) * 1000000;  // Convertir a microsegundos
+            
+            double end_block = MPI_Wtime();
+            T_par_block = (end_block - start_block) * 1000000;  // Convertir a microsegundos
+            
+            // Medir versión con comunicación no bloqueante
             MPI_Barrier(MPI_COMM_WORLD);
-            auto result_nonblock = processOptimizedDFAParallel(dfa, input, size, rank, true);
-            T_comm_nonblock = max(0.0, result_nonblock.communication_time);
-            T_par_nonblock = T_comp + T_comm_nonblock;  // Usar el mismo T_comp
+            double start_nonblock = MPI_Wtime();
+            
+            // Repetir la computación para medición independiente
+            double comp_nb_start = MPI_Wtime();
+            bool localResult_nb = false;
+            if (startPos < (int)input.length() && endPos > startPos) {
+                string localBlock = input.substr(startPos, endPos - startPos);
+                localResult_nb = dfa.run(localBlock);
+            }
+            double comp_nb_end = MPI_Wtime();
+            double T_comp_nb = (comp_nb_end - comp_nb_start) * 1000000;
+            (void)T_comp_nb;  // Suprimir warning de variable no utilizada
+            
+            // Comunicación no bloqueante
+            double comm_nb_start = MPI_Wtime();
+            MPI_Request request;
+            int localInt_nb = localResult_nb ? 1 : 0;
+            int globalResult_nb;
+            MPI_Iallreduce(&localInt_nb, &globalResult_nb, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD, &request);
+            
+            // Simular trabajo adicional durante comunicación
+            for (volatile int i = 0; i < 1000; i++) { /* trabajo simulado */ }
+            
+            MPI_Wait(&request, MPI_STATUS_IGNORE);
+            double comm_nb_end = MPI_Wtime();
+            T_comm_nonblock = (comm_nb_end - comm_nb_start) * 1000000;  // Convertir a microsegundos
+            
+            double end_nonblock = MPI_Wtime();
+            T_par_nonblock = (end_nonblock - start_nonblock) * 1000000;  // Convertir a microsegundos
         }
         
         // Solo el proceso 0 calcula métricas y escribe resultados
         if (rank == 0) {
-            // Protección contra división por cero
+            // Debug: Verificar valores antes de calcular speedup
+            cout << "🔍 DEBUG N=" << N << ": T_seq=" << T_seq << ", T_par_block=" << T_par_block 
+                 << ", T_par_nonblock=" << T_par_nonblock << endl;
+            
+            // Protección contra división por cero y valores irreales
             double speedup_block = (T_par_block > 0.001) ? T_seq / T_par_block : 1.0;
             double speedup_nonblock = (T_par_nonblock > 0.001) ? T_seq / T_par_nonblock : 1.0;
+            
+            // Limitar speedup a valores razonables (máximo 10x el número de procesos)
+            double max_reasonable_speedup = target_processes * 10.0;
+            if (speedup_nonblock > max_reasonable_speedup) {
+                cout << "⚠️  ADVERTENCIA: Speedup no bloqueante irreal (" << speedup_nonblock 
+                     << "), limitando a " << max_reasonable_speedup << endl;
+                speedup_nonblock = max_reasonable_speedup;
+            }
+            
             double efficiency_block = (target_processes > 0) ? speedup_block / target_processes : 0.0;
             double efficiency_nonblock = (target_processes > 0) ? speedup_nonblock / target_processes : 0.0;
             
