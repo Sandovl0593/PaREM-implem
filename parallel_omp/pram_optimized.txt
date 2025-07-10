@@ -1,0 +1,69 @@
+FUNCTION execute_parallel_DFA_optimized(DFA, T, p):
+    N     = length(T)
+    blk   = ceil(N / p)
+    
+    ─── Precompute jump‑table ──────────────────────────────────────────────────
+    jumpTable = precompute_jump(DFA, T, p, blk)
+    
+    ─── Compute starting state for each block ──────────────────────────────────
+    startStates = compute_start_states(jumpTable, p)
+    
+    ─── Parallel DFA execution ────────────────────────────────────────────────
+    ResultStates[0…N]  ⟵ array of size N+1
+    totalMatches       ⟵ 0
+
+    #pragma omp parallel for reduction(+ : totalMatches) schedule(static)
+    for t = 0 to p-1:
+        left   = t * blk
+        right  = min(N, left + blk)
+        if left ≥ right: continue
+
+        curr         = startStates[t]
+        localMatches = DFA.isAccepting(curr) ? 1 : 0
+        pos          = left
+        ResultStates[pos++] = curr
+
+        for i = left to right-1:
+            curr = DFA.nextState(curr, T[i])
+            ResultStates[pos++] = curr
+            if DFA.isAccepting(curr):
+                localMatches += 1
+
+        totalMatches += localMatches
+
+    finalState = ResultStates[N]
+    accepted   = DFA.isAccepting(finalState)
+    numMatches = totalMatches
+
+    return (finalState, accepted, numMatches, ResultStates)
+END FUNCTION
+
+
+FUNCTION precompute_jump(DFA, T, p, blk):
+    Q          = DFA.getNumStates()
+    jumpTable  = array[p][Q] of BlockInfo
+
+    for t = 0 to p-1 PARDO:
+        left   = t * blk
+        right  = min(length(T), left + blk)
+        for q = 0 to Q-1:
+            curr = q
+            cnt  = DFA.isAccepting(curr) ? 1 : 0
+            for i = left to right-1:
+                curr = DFA.nextState(curr, T[i])
+                if DFA.isAccepting(curr):
+                    cnt += 1
+            jumpTable[t][q] = (endState = curr, matchCount = cnt)
+
+    return jumpTable
+END FUNCTION
+
+
+FUNCTION compute_start_states(jumpTable, p):
+    startStates = array[p] of int
+    startStates[0] = 0
+    for t = 1 to p-1:
+        prev = startStates[t-1]
+        startStates[t] = jumpTable[t-1][prev].endState
+    return startStates
+END FUNCTION
