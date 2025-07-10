@@ -1,8 +1,6 @@
 *.out
-*.exe
 /.idea
 /cmake-build-debug
 .vscode/*
-*/*.exe
 */*.o
 */*.out

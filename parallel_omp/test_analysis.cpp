@@ -40,7 +40,7 @@ void logParallelResults(const string& testName, double sequentialTime,
                " | Tiempo total: " + to_string(parallelResult.computationTime) + " μs\n";
     message += "📊 Paralelo OMP Optimizado: Estado " + to_string(parallelOptResult.finalState) +
                " | Tiempo total: " + to_string(parallelOptResult.computationTime) + " μs\n";
-    message += "  ⚡ Tiempo computación: " + to_string(parallelResult.computationTime) + " μs\n";
+    // message += "  ⚡ Tiempo computación: " + to_string(parallelResult.computationTime) + " μs\n";
     message += "🚀 Speedup: " + to_string(speedup) + "x | Eficiencia: " + to_string(efficiency) + "%\n\n";
     
     string finalFile = "result_" +  testName + ".txt";

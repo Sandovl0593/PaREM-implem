@@ -70,8 +70,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     int num_threads = atoi(argv[1]);
-    if (num_threads < 1 || num_threads > 8) {
-        cout << "Error: Número de hilos debe estar entre 1 y 8" << endl;
+    if (num_threads < 1 || num_threads > 32) {
+        cout << "Error: Número de hilos debe estar entre 1 y 32" << endl;
         return 1;
     }
     
@@ -80,10 +80,10 @@ int main(int argc, char* argv[]) {
     // Información en secuencial
     cout << "🧮 Generando métricas de escalabilidad para " << num_threads << " hilos" << endl;
     cout << "📊 DFA: |Q| = 3, |Σ| = 2, patrón = \"00\"" << endl;
-    cout << "📏 Tamaños: N = {100K, 1M, 10M, 100M, 1B} caracteres" << endl;
+    cout << "📏 Tamaños: N = {100K, 1M, 10M, 100M} caracteres" << endl;
     
     DFA dfa = example_DFA();
-    vector<int> input_sizes = {100000, 1000000, 10000000, 100000000, 1000000000};
+    vector<int> input_sizes = {100000, 1000000, 10000000, 100000000};
     
     // Abrir archivo en modo append
     ofstream outFile;
@@ -96,7 +96,7 @@ int main(int argc, char* argv[]) {
     // Escribir encabezado para este conjunto de pruebas
     outFile << "\n=== MÉTRICAS DE ESCALABILIDAD PARA " << num_threads << " HILOS ===" << endl;
     outFile << "DFA: |Q| = 3, |Σ| = 2, acepta strings con patrón \"00\"" << endl;
-    outFile << "\nFormato: N | T_seq(ms) | T_comp(ms) | T_jum_opt(ns) | T_comp_opt(ms) | Speedup | Speedup_opt | "
+    outFile << "\nFormato: N | T_seq(ms) | T_comp(theo) | T_comp(ms) | T_jum_opt(ns) | T_comp_opt(theo) | T_comp_opt(ms) | Speedup | Speedup_opt | "
             << "Efficiency | Efficiency_opt" << endl;
     outFile << string(120, '-') << endl;
     
@@ -123,13 +123,32 @@ int main(int argc, char* argv[]) {
         double speedup_opt = (T_comp_opt > 0.001) ? T_seq / T_comp_opt : 1.0;
         double efficiency = (num_threads > 0) ? speedup / num_threads : 0.0;
         double efficiency_opt = (num_threads > 0) ? speedup_opt / num_threads : 0.0;
+
+        int p = num_threads;
+        int Q = dfa.getNumStates();
+        int sigma = dfa.getAlphabet().size();
+        double Qsigma = double(Q) * double(sigma);
+
+        // --- 1) Modelo teórico ---
+        double T_theo = (Qsigma + N)/p + N;
+        double T_theo_ompt = (Qsigma + N)/p + log2(double(p)) + double(Q) * log2(double(p));
+
+        // Métricas reales ---
+        double real_speedup    = T_seq / T_comp;
+        double real_efficiency = real_speedup / p * 100.0;
+
+        // Métricas teóricas ---
+        double theo_speedup    = T_seq / T_theo;
+        double theo_efficiency = theo_speedup / p * 100.0;
         
         // Escribir resultados
         outFile << fixed << setprecision(3);
         outFile << setw(8) << N << " | "
                 << setw(9) << T_seq << " | "
+                << setw(15) << T_theo << " | "
                 << setw(10) << T_comp << " | "
                 << setw(15) << T_jum_opt << " | "
+                << setw(15) << T_theo_ompt << " | "
                 << setw(13) << T_comp_opt << " | "
                 << setw(18) << speedup << " | "
                 << setw(16) << speedup_opt << " | "
